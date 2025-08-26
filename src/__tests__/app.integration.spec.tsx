@@ -41,7 +41,8 @@ const saveSchedule = async (
 
   await user.click(screen.getAllByText('일정 추가')[0]);
 
-  await user.type(screen.getByLabelText('제목'), title);
+  const titleInput = await screen.findByLabelText('제목');
+  await user.type(titleInput, title);
   await user.type(screen.getByLabelText('날짜'), date);
   await user.type(screen.getByLabelText('시작 시간'), startTime);
   await user.type(screen.getByLabelText('종료 시간'), endTime);

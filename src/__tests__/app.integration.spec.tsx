@@ -1,6 +1,6 @@
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { render, screen, within, act } from '@testing-library/react';
+import { render, screen, within, act, waitFor } from '@testing-library/react';
 import { UserEvent, userEvent } from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { SnackbarProvider } from 'notistack';
@@ -358,24 +358,26 @@ describe('일정 충돌', () => {
   });
 });
 
-it('notificationTime을 10으로 하면 지정 시간 10분 전 알람 텍스트가 노출된다', async () => {
-  vi.setSystemTime(new Date('2025-10-15 08:49:59'));
+describe('일정 알람 기능', () => {
+  it('notificationTime을 10으로 하면 지정 시간 10분 전 알람 텍스트가 노출된다', async () => {
+    vi.setSystemTime(new Date('2025-10-15 08:49:59'));
 
-  setup(<App />);
+    setup(<App />);
 
-  // ! 일정 로딩 완료 후 테스트
-  await screen.findByText('일정 로딩 완료!');
+    // ! 일정 로딩 완료 후 테스트
+    await screen.findByText('일정 로딩 완료!');
 
-  expect(screen.queryByText('10분 후 기존 회의 일정이 시작됩니다.')).not.toBeInTheDocument();
+    expect(screen.queryByText('10분 후 기존 회의 일정이 시작됩니다.')).not.toBeInTheDocument();
 
-  act(() => {
-    vi.advanceTimersByTime(1000);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByText('10분 후 기존 회의 일정이 시작됩니다.')).toBeInTheDocument();
   });
-
-  expect(screen.getByText('10분 후 기존 회의 일정이 시작됩니다.')).toBeInTheDocument();
 });
 
-describe('반복 일정 통합 테스트', () => {
+describe('반복 일정 기능', () => {
   beforeEach(() => {
     setupMockHandlerCreation();
   });
@@ -478,5 +480,66 @@ describe('반복 일정 통합 테스트', () => {
     expect(
       within(day3Cell.closest('td') as HTMLElement).getByText('매일 회의')
     ).toBeInTheDocument();
+  });
+
+  describe('원본 반복 일정 수정 및 삭제', () => {
+    const recurringEvent: Event = {
+      id: 'recurring-event-1',
+      title: '원본 주간 회의',
+      date: '2025-10-06', // 월요일
+      startTime: '10:00',
+      endTime: '11:00',
+      repeat: { type: 'weekly', interval: 1, endDate: '2025-10-20' },
+      description: '',
+      location: '',
+      category: '',
+      notificationTime: 0,
+    };
+
+    it('원본 반복 일정을 수정하면, 모든 미래의 가상 일정이 함께 변경된다', async () => {
+      setupMockHandlerUpdating([recurringEvent]);
+      const { user } = setup(<App />);
+      await screen.findByText('일정 로딩 완료!');
+
+      const eventList = screen.getByTestId('event-list');
+      const originalEventBox = await within(eventList).findAllByText('원본 주간 회의');
+      const eventContainer = originalEventBox[0].closest('div.MuiBox-root');
+
+      const editButton = within(eventContainer as HTMLElement).getByLabelText('Edit event');
+      await user.click(editButton);
+
+      const titleInput = await screen.findByLabelText('제목');
+      await user.clear(titleInput);
+      await user.type(titleInput, '전사 타운홀 미팅');
+      await user.click(screen.getByTestId('event-submit-button'));
+
+      await screen.findByText('일정이 수정되었습니다.');
+
+      const calendarGrid = screen.getByTestId('month-view');
+      await waitFor(async () => {
+        const updatedEvents = await within(calendarGrid).findAllByText('전사 타운홀 미팅');
+        expect(updatedEvents).toHaveLength(3);
+      });
+    });
+
+    it('원본 반복 일정을 삭제하면, 모든 가상 일정이 함께 사라진다', async () => {
+      setupMockHandlerDeletion([recurringEvent]);
+      const { user } = setup(<App />);
+      await screen.findByText('일정 로딩 완료!');
+
+      const eventList = screen.getByTestId('event-list');
+      const eventToDelete = await within(eventList).findAllByText('원본 주간 회의');
+      const eventContainer = eventToDelete[0].closest('div.MuiBox-root');
+      const deleteButton = within(eventContainer as HTMLElement).getByLabelText('Delete event');
+
+      await user.click(deleteButton);
+
+      await screen.findByText('일정이 삭제되었습니다.');
+
+      const calendarGrid = screen.getByTestId('month-view');
+      await waitFor(() => {
+        expect(within(calendarGrid).queryByText('삭제할 이벤트')).not.toBeInTheDocument();
+      });
+    });
   });
 });

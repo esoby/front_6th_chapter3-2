@@ -20,7 +20,7 @@ export const setupMockHandlerCreation = (initEvents = [] as Event[]) => {
   );
 };
 
-export const setupMockHandlerUpdating = () => {
+export const setupMockHandlerUpdating = (initEvents = [] as Event[]) => {
   const mockEvents: Event[] = [
     {
       id: '1',
@@ -47,23 +47,24 @@ export const setupMockHandlerUpdating = () => {
       notificationTime: 10,
     },
   ];
+  const defaultEvents = initEvents.length ? initEvents : mockEvents;
 
   server.use(
     http.get('/api/events', () => {
-      return HttpResponse.json({ events: mockEvents });
+      return HttpResponse.json({ events: defaultEvents });
     }),
     http.put('/api/events/:id', async ({ params, request }) => {
       const { id } = params;
       const updatedEvent = (await request.json()) as Event;
-      const index = mockEvents.findIndex((event) => event.id === id);
+      const index = defaultEvents.findIndex((event) => event.id === id);
 
-      mockEvents[index] = { ...mockEvents[index], ...updatedEvent };
-      return HttpResponse.json(mockEvents[index]);
+      defaultEvents[index] = { ...defaultEvents[index], ...updatedEvent };
+      return HttpResponse.json(defaultEvents[index]);
     })
   );
 };
 
-export const setupMockHandlerDeletion = () => {
+export const setupMockHandlerDeletion = (initEvents = [] as Event[]) => {
   const mockEvents: Event[] = [
     {
       id: '1',
@@ -78,16 +79,17 @@ export const setupMockHandlerDeletion = () => {
       notificationTime: 10,
     },
   ];
+  const defaultEvents = initEvents.length ? initEvents : mockEvents;
 
   server.use(
     http.get('/api/events', () => {
-      return HttpResponse.json({ events: mockEvents });
+      return HttpResponse.json({ events: defaultEvents });
     }),
     http.delete('/api/events/:id', ({ params }) => {
       const { id } = params;
-      const index = mockEvents.findIndex((event) => event.id === id);
+      const index = defaultEvents.findIndex((event) => event.id === id);
 
-      mockEvents.splice(index, 1);
+      defaultEvents.splice(index, 1);
       return new HttpResponse(null, { status: 204 });
     })
   );

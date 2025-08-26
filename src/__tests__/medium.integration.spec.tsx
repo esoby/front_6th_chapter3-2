@@ -54,6 +54,40 @@ const saveSchedule = async (
   await user.click(screen.getByTestId('event-submit-button'));
 };
 
+const createRecurringEvent = async (user: UserEvent, form: Partial<Event>) => {
+  const { title, date, startTime, endTime, repeat } = form;
+
+  const addButton = screen.getByRole('button', { name: '일정 추가' });
+  await user.click(addButton);
+
+  const titleInput = await screen.findByLabelText('제목');
+
+  if (title) await user.type(titleInput, title);
+  if (date) await user.type(screen.getByLabelText('날짜'), date);
+  if (startTime) await user.type(screen.getByLabelText('시작 시간'), startTime);
+  if (endTime) await user.type(screen.getByLabelText('종료 시간'), endTime);
+
+  if (repeat && repeat.type !== 'none') {
+    const repeatTypeSelectTrigger = screen.getByLabelText('반복 유형');
+    await user.click(repeatTypeSelectTrigger);
+
+    const optionsList = await screen.findByRole('listbox');
+    const repeatTypeMap = {
+      daily: '매일',
+      weekly: '매주',
+      monthly: '매월',
+      yearly: '매년',
+    };
+    await user.click(within(optionsList).getByText(repeatTypeMap[repeat.type]));
+
+    if (repeat.endDate) {
+      await user.type(screen.getByLabelText('반복 종료일'), repeat.endDate);
+    }
+  }
+
+  await user.click(screen.getByTestId('event-submit-button'));
+};
+
 describe('일정 CRUD 및 기본 기능', () => {
   it('입력한 새로운 일정 정보에 맞춰 모든 필드가 이벤트 리스트에 정확히 저장된다.', async () => {
     setupMockHandlerCreation();
@@ -339,4 +373,110 @@ it('notificationTime을 10으로 하면 지정 시간 10분 전 알람 텍스트
   });
 
   expect(screen.getByText('10분 후 기존 회의 일정이 시작됩니다.')).toBeInTheDocument();
+});
+
+describe('반복 일정 통합 테스트', () => {
+  beforeEach(() => {
+    setupMockHandlerCreation();
+  });
+
+  it('사용자가 "매일" 반복 일정을 생성하면, 달력에 여러 날짜에 걸쳐 일정이 표시된다', async () => {
+    const { user } = setup(<App />);
+    const dailyEvent: Event = {
+      title: '매일 아침 조깅',
+      date: '2025-10-01',
+      startTime: '07:00',
+      endTime: '08:00',
+      repeat: { type: 'daily', interval: 1, endDate: '2025-10-27' },
+      id: '',
+      description: '',
+      location: '',
+      category: '',
+      notificationTime: 0,
+    };
+
+    await createRecurringEvent(user, dailyEvent);
+
+    const calendarGrid = screen.getByTestId('month-view');
+    for (let day = 1; day <= 3; day++) {
+      const dayCellContent = await within(calendarGrid).findByText(String(day));
+      const dayCell = dayCellContent.closest('td');
+
+      const eventTitle = await within(dayCell as HTMLElement).findByText('매일 아침 조깅');
+      expect(eventTitle).toBeInTheDocument();
+    }
+  });
+
+  it('반복 일정 중 하나를 수정하면, 해당 날짜의 일정만 단일 일정으로 변경된다', async () => {
+    const { user } = setup(<App />);
+    const weeklyEvent: Event = {
+      title: '주간 회의',
+      date: '2025-10-06', // 월요일
+      startTime: '10:00',
+      endTime: '11:00',
+      repeat: { type: 'weekly', interval: 1, endDate: '2025-10-20' },
+      id: '',
+      description: '',
+      location: '',
+      category: '',
+      notificationTime: 0,
+    };
+    await createRecurringEvent(user, weeklyEvent);
+    await screen.findByText('일정이 추가되었습니다.');
+
+    const eventList = screen.getByTestId('event-list');
+    const eventBoxes = await within(eventList).findAllByText('주간 회의');
+    const eventContainer = eventBoxes[1].closest('div.MuiBox-root');
+    const editButton = within(eventContainer as HTMLElement).getByLabelText('Edit event');
+    await user.click(editButton);
+
+    const titleInput = await screen.findByLabelText('제목');
+    expect(titleInput).toHaveValue('주간 회의');
+
+    await user.clear(titleInput);
+    await user.type(titleInput, '수정된 회의');
+    await user.click(screen.getByTestId('event-submit-button'));
+
+    await screen.findByText('반복 일정 중 하나가 단일 일정으로 수정되었습니다.');
+
+    const day13Cell = await screen.findByText('13');
+    expect(
+      await within(day13Cell.closest('td') as HTMLElement).findByText('수정된 회의')
+    ).toBeInTheDocument();
+
+    const day20Cell = screen.getByText('20');
+    expect(
+      within(day20Cell.closest('td') as HTMLElement).getByText('주간 회의')
+    ).toBeInTheDocument();
+  });
+
+  it('반복 일정 중 하나를 삭제하면, 해당 날짜의 일정만 사라진다', async () => {
+    const { user } = setup(<App />);
+    await createRecurringEvent(user, {
+      title: '매일 회의',
+      date: '2025-10-01',
+      startTime: '10:00',
+      endTime: '11:00',
+      repeat: { type: 'daily', interval: 1, endDate: '2025-10-03' },
+    });
+    await screen.findByText('일정이 추가되었습니다.');
+
+    const eventList = screen.getByTestId('event-list');
+    const eventBoxes = await within(eventList).findAllByText('매일 회의');
+    const eventContainer = eventBoxes[1].closest('div.MuiBox-root');
+    const deleteButton = within(eventContainer as HTMLElement).getByLabelText('Delete event');
+    await user.click(deleteButton);
+
+    await screen.findByText('반복 일정 중 하나만 삭제되었습니다.');
+
+    const day2Cell = await screen.findByText('2');
+    expect(
+      within(day2Cell.closest('td') as HTMLElement).queryByText('매일 회의')
+    ).not.toBeInTheDocument();
+
+    const day3Cell = screen.getByText('3');
+    expect(
+      within(day3Cell.closest('td') as HTMLElement).getByText('매일 회의')
+    ).toBeInTheDocument();
+  });
 });

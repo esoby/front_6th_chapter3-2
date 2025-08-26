@@ -2,6 +2,7 @@ import { useSnackbar } from 'notistack';
 import { useEffect, useState } from 'react';
 
 import { Event, EventForm } from '../types';
+import { updateSingleRecurringEvent, deleteSingleRecurringEvent } from '../utils/recurringEvents';
 
 export const useEventOperations = (editing: boolean, onSave?: () => void) => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -22,6 +23,22 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
   };
 
   const saveEvent = async (eventData: Event | EventForm) => {
+    if (editing && (eventData as Event).id?.includes('-recurring-')) {
+      const originalEventId = (eventData as Event).id.split('-recurring-')[0];
+      const modificationDate = (eventData as Event).date;
+
+      const { updatedEvents } = updateSingleRecurringEvent(
+        events,
+        originalEventId,
+        modificationDate,
+        eventData
+      );
+      setEvents(updatedEvents);
+      enqueueSnackbar('반복 일정 중 하나가 단일 일정으로 수정되었습니다.', { variant: 'success' });
+      onSave?.();
+      return;
+    }
+
     try {
       let response;
       if (editing) {
@@ -54,6 +71,15 @@ export const useEventOperations = (editing: boolean, onSave?: () => void) => {
   };
 
   const deleteEvent = async (id: string) => {
+    if (id.includes('-recurring-')) {
+      const [originalEventId, deletionDate] = id.split('-recurring-');
+
+      const { updatedEvents } = deleteSingleRecurringEvent(events, originalEventId, deletionDate);
+      setEvents(updatedEvents);
+      enqueueSnackbar('반복 일정 중 하나만 삭제되었습니다.', { variant: 'info' });
+      return;
+    }
+
     try {
       const response = await fetch(`/api/events/${id}`, { method: 'DELETE' });
 

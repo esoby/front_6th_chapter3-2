@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Event } from '../types';
 import { getEventsForView } from '../utils/recurringEvents';
 
-export const useSearch = (events: Event[], currentDate: Date, view: 'week' | 'month') => {
+export const useFilteredEvents = (events: Event[], currentDate: Date, view: 'week' | 'month') => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredEvents = useMemo(() => {

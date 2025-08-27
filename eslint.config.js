@@ -130,7 +130,7 @@ export default [
 
   // Cypress E2E test files configuration
   {
-    files: ['cypress/e2e/**/*.cy.js'],
+    files: ['cypress/e2e/**/*.{js,jsx,ts,tsx}'],
     plugins: {
       cypress: cypressPlugin,
     },
@@ -139,10 +139,19 @@ export default [
     },
     languageOptions: {
       globals: {
+        ...globals.browser,
+        ...globals.cypress,
+        ...globals.mocha,
         cy: 'readonly',
         Cypress: 'readonly',
         expect: 'readonly',
         assert: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
       },
     },
   },

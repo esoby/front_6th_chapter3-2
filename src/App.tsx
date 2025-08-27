@@ -1,19 +1,10 @@
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Stack } from '@mui/material';
 
 import { CalendarView } from './components/CalendarView';
 import { EventFormPanel } from './components/EventFormPanel';
 import { EventListPanel } from './components/EventListPanel';
 import { NotificationPanel } from './components/NotificationPanel';
+import { OverlapWarningDialog } from './components/OverlapWarningDialog';
 import { useCalendarView } from './hooks/useCalendarView';
 import { useEventForm } from './hooks/useEventForm';
 import { useEventOperations } from './hooks/useEventOperations';
@@ -65,26 +56,12 @@ function App() {
         />
       </Stack>
 
-      <Dialog open={isOverlapDialogOpen} onClose={cancelOverlap}>
-        <DialogTitle>일정 겹침 경고</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            다음 일정과 겹칩니다:
-            {overlappingEvents.map((event) => (
-              <Typography key={event.id}>
-                {event.title} ({event.date} {event.startTime}-{event.endTime})
-              </Typography>
-            ))}
-            계속 진행하시겠습니까?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelOverlap}>취소</Button>
-          <Button color="error" onClick={confirmOverlap}>
-            계속 진행
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <OverlapWarningDialog
+        isOpen={isOverlapDialogOpen}
+        overlappingEvents={overlappingEvents}
+        onConfirm={confirmOverlap}
+        onCancel={cancelOverlap}
+      />
 
       <NotificationPanel
         notifications={notificationProps.notifications}

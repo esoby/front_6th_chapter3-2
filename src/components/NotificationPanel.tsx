@@ -1,9 +1,10 @@
+/* eslint-disable no-unused-vars */
 import Close from '@mui/icons-material/Close';
 import { Alert, AlertTitle, IconButton, Stack } from '@mui/material';
 
 interface NotificationPanelProps {
   notifications: { id: string; message: string }[];
-  onDismiss: (idx: number) => void;
+  onDismiss: (index: number) => void;
 }
 
 export const NotificationPanel = ({ notifications, onDismiss }: NotificationPanelProps) => {
@@ -20,7 +21,7 @@ export const NotificationPanel = ({ notifications, onDismiss }: NotificationPane
       alignItems="flex-end"
       sx={{ zIndex: 1500 }}
     >
-      {notifications.map((notif, idx) => (
+      {notifications.map((notif, index) => (
         <Alert
           key={notif.id}
           severity="info"
@@ -30,7 +31,7 @@ export const NotificationPanel = ({ notifications, onDismiss }: NotificationPane
               size="small"
               aria-label="close"
               color="inherit"
-              onClick={() => onDismiss(idx)}
+              onClick={() => onDismiss(index)}
             >
               <Close fontSize="small" />
             </IconButton>

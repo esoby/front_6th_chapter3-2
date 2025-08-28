@@ -92,7 +92,8 @@ describe('캘린더 E2E 테스트', () => {
         .click();
 
       // 제목과 설명을 변경한 뒤 저장한다.
-      cy.get('#title').clear().type(updatedTitle);
+      cy.get('#title').clear();
+      cy.get('#title').type(updatedTitle);
       cy.get('[data-testid="event-submit-button"]').click();
 
       // Then: '일정이 수정되었습니다' 알림이 나타나야 한다.
@@ -176,7 +177,8 @@ describe('캘린더 E2E 테스트', () => {
         });
       });
 
-      cy.get('#title').clear().type(updatedTitle);
+      cy.get('#title').clear();
+      cy.get('#title').type(updatedTitle);
       cy.get('[data-testid="event-submit-button"]').click({ force: true });
 
       // Then: '8월 12일' 칸에는 "특별 회의"가 표시되고 반복 아이콘이 없어야 한다.

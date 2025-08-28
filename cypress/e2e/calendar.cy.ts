@@ -3,8 +3,6 @@
 const createEvent = (eventData) => {
   const { title, date, startTime, endTime, description, location } = eventData;
 
-  cy.get('button').contains('일정 추가').click();
-
   cy.get('#title').type(title);
   cy.get('#date').type(date);
   cy.get('#start-time').type(startTime);
@@ -16,8 +14,6 @@ const createEvent = (eventData) => {
 
 const createRecurringEvent = (eventData) => {
   const { title, date, startTime, endTime, description, location, repeat } = eventData;
-
-  cy.get('button').contains('일정 추가').click();
 
   cy.get('#title').type(title);
   cy.get('#date').type(date);
@@ -55,9 +51,7 @@ describe('캘린더 E2E 테스트', () => {
     it('시나리오: 사용자가 새 단일 일정을 성공적으로 생성한다', () => {
       const eventTitle = '새로운 E2E 테스트 일정';
 
-      // Given: 사용자가 '일정 추가' 버튼을 누르고,
-      cy.get('button').contains('일정 추가').click();
-
+      // Given: 일정 추가 폼이 있고
       // When: 모든 필드를 유효하게 채운 뒤 저장한다.
       cy.get('#title').type(eventTitle);
       cy.get('#date').type('2025-08-15');
@@ -271,7 +265,6 @@ describe('캘린더 E2E 테스트', () => {
   describe('4. 유효성 검사 및 예외 처리', () => {
     it('시나리오: 사용자가 필수 필드를 비우고 일정을 생성하려고 한다', () => {
       // When: 사용자가 '일정 추가' 폼에서 제목을 입력하지 않고 저장 버튼을 누른다.
-      cy.get('button').contains('일정 추가').click();
       cy.get('[data-testid="event-submit-button"]').click();
       // Then: "필수 정보를 모두 입력해주세요"라는 에러 알림이 나타나야 한다.
       cy.contains('필수 정보를 모두 입력해주세요').should('be.visible');

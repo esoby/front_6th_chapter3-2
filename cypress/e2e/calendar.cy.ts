@@ -299,7 +299,3 @@ describe('캘린더 E2E 테스트', () => {
     });
   });
 });
-
-it('test', function () {
-  cy.visit('/');
-});

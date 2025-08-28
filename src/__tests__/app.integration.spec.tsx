@@ -69,6 +69,7 @@ const createRecurringEvent = async (user: UserEvent, form: Partial<Event>) => {
   if (endTime) await user.type(screen.getByLabelText('종료 시간'), endTime);
 
   if (repeat && repeat.type !== 'none') {
+    await user.click(screen.getByLabelText('반복 일정'));
     const repeatTypeSelectTrigger = screen.getByLabelText('반복 유형');
     await user.click(repeatTypeSelectTrigger);
 

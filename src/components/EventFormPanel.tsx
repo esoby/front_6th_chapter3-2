@@ -162,7 +162,7 @@ export const EventFormPanel = ({ formProps }) => {
             <FormLabel id="repeat-type">반복 유형</FormLabel>
             <Select
               labelId="repeat-type"
-              id="repeat-type"
+              id="repeat-type-select"
               size="small"
               value={repeatType}
               onChange={(e) => setRepeatType(e.target.value as RepeatType)}
@@ -182,7 +182,6 @@ export const EventFormPanel = ({ formProps }) => {
                 type="number"
                 value={repeatInterval}
                 onChange={(e) => setRepeatInterval(Number(e.target.value))}
-                inputProps={{ min: 1 }}
               />
             </FormControl>
             <FormControl fullWidth>
@@ -193,7 +192,6 @@ export const EventFormPanel = ({ formProps }) => {
                 type="date"
                 value={repeatEndDate}
                 onChange={(e) => setRepeatEndDate(e.target.value)}
-                inputProps={{ max: '2025-10-30' }}
               />
             </FormControl>
           </Stack>

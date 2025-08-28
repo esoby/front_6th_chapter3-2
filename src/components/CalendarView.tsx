@@ -101,8 +101,12 @@ export const CalendarView = ({ viewProps }) => {
                             onClick={() => editEvent(event)}
                           >
                             <Stack direction="row" spacing={1} alignItems="center">
-                              {isNotified && <Notifications fontSize="small" />}
-                              {isRecurring && <Repeat fontSize="small" />}
+                              {isNotified && (
+                                <Notifications data-testid="notification-icon" fontSize="small" />
+                              )}
+                              {isRecurring && (
+                                <Repeat data-testid="recurring-icon" fontSize="small" />
+                              )}
                               <Typography
                                 variant="caption"
                                 noWrap

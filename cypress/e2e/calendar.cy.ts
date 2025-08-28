@@ -43,6 +43,17 @@ describe('캘린더 E2E 테스트', () => {
     cy.visit('/');
   });
 
+  after(() => {
+    cy.request('GET', '/api/events').then((response) => {
+      const testEvents = response.body.events.filter((event) => event.title.includes('E2E 테스트'));
+
+      testEvents.forEach((event) => {
+        cy.request('DELETE', `/api/events/${event.id}`);
+        cy.log(`${event.title} (ID: ${event.id}) 삭제 완료`);
+      });
+    });
+  });
+
   describe('1. 기본 CRUD (Create, Read, Update, Delete)', () => {
     beforeEach(() => {
       cy.clock(new Date('2025-08-01T10:00:00'));
@@ -113,7 +124,7 @@ describe('캘린더 E2E 테스트', () => {
 
   describe('2. 반복 일정 기능', () => {
     it("시나리오: 사용자가 '매주' 반복 일정을 생성한다", () => {
-      const eventTitle = '매주 E2E 회의';
+      const eventTitle = 'E2E 테스트 주간 회의';
       // Given: 사용자가 '2025-08-04'(월요일)을 시작일로 선택하고,
       // When: 반복 옵션을 '매주', 종료일을 '2025-08-18'로 설정하고 저장한다.
       createRecurringEvent({
@@ -143,8 +154,8 @@ describe('캘린더 E2E 테스트', () => {
     });
 
     it("시나리오: 사용자가 반복 일정의 '가상 인스턴스'만 수정한다", () => {
-      const eventTitle = '반복 테스트용 주간 회의';
-      const updatedTitle = '특별 회의';
+      const eventTitle = 'E2E 테스트 주간 회의';
+      const updatedTitle = 'E2E 테스트 특별 회의';
       // Given: '매주' 반복되는 "주간 회의" 일정이 있는 상태에서,
       createRecurringEvent({
         title: eventTitle,
@@ -187,7 +198,7 @@ describe('캘린더 E2E 테스트', () => {
     });
 
     it("시나리오: 사용자가 반복 일정의 '원본'을 삭제한다", () => {
-      const eventTitle = '삭제될 주간 회의';
+      const eventTitle = 'E2E 테스트 삭제될 주간 회의';
       // Given: '매주' 반복되는 "주간 회의" 일정이 있는 상태에서,
       createRecurringEvent({
         title: eventTitle,
@@ -231,7 +242,7 @@ describe('캘린더 E2E 테스트', () => {
     it('시나리오: 사용자가 키워드로 일정을 검색한다', () => {
       // Given: '팀 회의'와 '점심 약속' 일정이 있는 상태에서,
       createEvent({
-        title: 'test - 팀 회의',
+        title: 'E2E 테스트 - 팀 회의',
         date: '2025-08-10',
         startTime: '10:00',
         endTime: '11:00',
@@ -239,7 +250,7 @@ describe('캘린더 E2E 테스트', () => {
         location: '회의실',
       });
       createEvent({
-        title: 'test - 점심 약속',
+        title: 'E2E 테스트 - 점심 약속',
         date: '2025-08-11',
         startTime: '12:00',
         endTime: '13:00',
@@ -251,14 +262,14 @@ describe('캘린더 E2E 테스트', () => {
       cy.get('#search').type('회의');
       // Then: 오른쪽 이벤트 목록에 '팀 회의'만 남고, '점심 약속'은 사라져야 한다.
       cy.get('[data-testid="event-list"]')
-        .should('contain', 'test - 팀 회의')
-        .and('not.contain', 'test - 점심 약속');
+        .should('contain', 'E2E 테스트 - 팀 회의')
+        .and('not.contain', 'E2E 테스트 - 점심 약속');
       // When: 검색창을 비운다.
       cy.get('#search').clear();
       // Then: 두 일정이 모두 다시 표시되어야 한다.
       cy.get('[data-testid="event-list"]')
-        .should('contain', 'test - 팀 회의')
-        .and('contain', 'test - 점심 약속');
+        .should('contain', 'E2E 테스트 - 팀 회의')
+        .and('contain', 'E2E 테스트 - 점심 약속');
     });
   });
 
@@ -274,7 +285,7 @@ describe('캘린더 E2E 테스트', () => {
     it('시나리오: 사용자가 겹치는 시간에 일정을 생성하려고 한다', () => {
       // Given: '10:00 ~ 11:00'에 "기존 회의" 일정이 있는 상태에서,
       createEvent({
-        title: 'test - 기존 회의',
+        title: 'E2E 테스트 - 기존 회의',
         date: '2025-08-20',
         startTime: '10:00',
         endTime: '11:00',
@@ -283,7 +294,7 @@ describe('캘린더 E2E 테스트', () => {
       });
       // When: 사용자가 '10:30 ~ 11:30'에 "새로운 회의"를 생성하려고 한다.
       createEvent({
-        title: 'test - 겹치는 일정',
+        title: 'E2E 테스트 - 겹치는 일정',
         date: '2025-08-20',
         startTime: '10:30',
         endTime: '11:30',
@@ -295,7 +306,7 @@ describe('캘린더 E2E 테스트', () => {
       // When: "계속 진행" 버튼을 누른다.
       cy.get('button').contains('계속 진행').click();
       // Then: 겹침 경고 다이얼로그가 닫히고, "새로운 회의"가 정상적으로 추가되어야 한다.
-      cy.get('[data-testid="event-list"]').should('contain', 'test - 겹치는 일정');
+      cy.get('[data-testid="event-list"]').should('contain', 'E2E 테스트 - 겹치는 일정');
     });
   });
 });

@@ -210,36 +210,30 @@ describe('캘린더 E2E 테스트', () => {
     });
 
     it('시나리오: 사용자가 키워드로 일정을 검색한다', () => {
-      // Given: '팀 회의'와 '점심 약속' 일정이 있는 상태에서,
+      const keyword = '중요한 회의';
+      const titleWithKeyword = 'E2E 테스트 - ' + keyword;
+
+      // Given: 두 일정이 있는 상태에서,
+      createEvent(initialEventData);
       createEvent({
-        title: 'E2E 테스트 - 팀 회의',
-        date: '2025-08-16',
-        startTime: '10:00',
-        endTime: '11:00',
-        description: '팀 회의입니다',
-        location: '회의실',
-      });
-      createEvent({
-        title: 'E2E 테스트 - 점심 약속',
-        date: '2025-08-16',
-        startTime: '12:00',
-        endTime: '13:00',
-        description: '점심 약속입니다',
-        location: '식당',
+        ...initialEventData,
+        title: titleWithKeyword,
+        date: '2025-08-30',
       });
 
-      // When: 오른쪽 검색창에 '회의'라고 입력한다.
-      cy.get('#search').type('회의');
-      // Then: 오른쪽 이벤트 목록에 '팀 회의'만 남고, '점심 약속'은 사라져야 한다.
+      // When: 오른쪽 검색창에 검색 키워드를 입력한다.
+      cy.get('#search').type(keyword);
+      // Then: 오른쪽 이벤트 목록에 키워드가 포함된 일정만 남아야 한다.
       cy.get('[data-testid="event-list"]')
-        .should('contain', 'E2E 테스트 - 팀 회의')
-        .and('not.contain', 'E2E 테스트 - 점심 약속');
+        .should('contain', titleWithKeyword)
+        .and('not.contain', initialEventData.title);
+
       // When: 검색창을 비운다.
       cy.get('#search').clear();
-      // Then: 두 일정이 모두 다시 표시되어야 한다.
+      // Then: 모든 일정이 다시 표시되어야 한다.
       cy.get('[data-testid="event-list"]')
-        .should('contain', 'E2E 테스트 - 팀 회의')
-        .and('contain', 'E2E 테스트 - 점심 약속');
+        .should('contain', titleWithKeyword)
+        .and('contain', initialEventData.title);
     });
   });
 
@@ -252,30 +246,23 @@ describe('캘린더 E2E 테스트', () => {
     });
 
     it('시나리오: 사용자가 겹치는 시간에 일정을 생성하려고 한다', () => {
-      // Given: '10:00 ~ 11:00'에 "기존 회의" 일정이 있는 상태에서,
+      const anotherTitle = 'E2E 테스트 일정 - 겹치는 시간';
+
+      // Given: 기본 일정이 있는 상태에서,
+      createEvent(initialEventData);
+
+      // When: 사용자가 겹치는 시간에 새 일정을 생성하려고 한다.
       createEvent({
-        title: 'E2E 테스트 - 기존 회의',
-        date: '2025-08-16',
-        startTime: '10:00',
-        endTime: '11:00',
-        description: '기존 회의입니다',
-        location: '2번 회의실',
-      });
-      // When: 사용자가 '10:30 ~ 11:30'에 "새로운 회의"를 생성하려고 한다.
-      createEvent({
-        title: 'E2E 테스트 - 겹치는 일정',
-        date: '2025-08-16',
-        startTime: '10:30',
-        endTime: '11:30',
-        description: '겹치는 일정입니다',
-        location: '3번 회의실',
+        ...initialEventData,
+        title: anotherTitle,
       });
       // Then: "일정 겹침 경고" 다이얼로그가 나타나야 한다.
       cy.get('[role="dialog"]').should('contain', '일정 겹침 경고');
+
       // When: "계속 진행" 버튼을 누른다.
       cy.get('button').contains('계속 진행').click();
-      // Then: 겹침 경고 다이얼로그가 닫히고, "새로운 회의"가 정상적으로 추가되어야 한다.
-      cy.get('[data-testid="event-list"]').should('contain', 'E2E 테스트 - 겹치는 일정');
+      // Then: 겹침 경고 다이얼로그가 닫히고, 새 일정이 정상적으로 추가되어야 한다.
+      cy.get('[data-testid="event-list"]').should('contain', anotherTitle);
     });
   });
 });

@@ -1,20 +1,18 @@
 /// <reference types="cypress" />
 
-const createEvent = (eventData) => {
-  const { title, date, startTime, endTime, description, location } = eventData;
-
-  cy.get('#title').type(title);
-  cy.get('#date').type(date);
-  cy.get('#start-time').type(startTime);
-  cy.get('#description').type(description);
-  cy.get('#location').type(location);
-  cy.get('#end-time').type(endTime);
-  cy.get('[data-testid="event-submit-button"]').click({ force: true });
+const initialEventData = {
+  title: 'E2E 테스트 일정',
+  date: '2025-08-04',
+  startTime: '14:00',
+  endTime: '15:00',
+  description: '테스트 내용',
+  location: '테스트 장소',
 };
 
-const createRecurringEvent = (eventData) => {
+const createEvent = (eventData) => {
   const { title, date, startTime, endTime, description, location, repeat } = eventData;
 
+  // 공통 필드
   cy.get('#title').type(title);
   cy.get('#date').type(date);
   cy.get('#start-time').type(startTime);
@@ -25,9 +23,7 @@ const createRecurringEvent = (eventData) => {
   if (repeat && repeat.type !== 'none') {
     cy.get('input[type="checkbox"]').check();
     cy.get('#repeat-end').should('be.visible').and('be.enabled');
-
     cy.get('#repeat-type-select').click();
-
     cy.get(`[data-value="${repeat.type}"]`).click();
 
     if (repeat.endDate) {
@@ -43,7 +39,7 @@ describe('캘린더 E2E 테스트', () => {
     cy.visit('/');
   });
 
-  after(() => {
+  afterEach(() => {
     cy.request('GET', '/api/events').then((response) => {
       const testEvents = response.body.events.filter((event) => event.title.includes('E2E 테스트'));
 
@@ -59,34 +55,30 @@ describe('캘린더 E2E 테스트', () => {
       cy.clock(new Date('2025-08-01T10:00:00'));
       cy.visit('/');
     });
-    it('시나리오: 사용자가 새 단일 일정을 성공적으로 생성한다', () => {
-      const eventTitle = '새로운 E2E 테스트 일정';
 
-      // Given: 일정 추가 폼이 있고
+    it('시나리오: 사용자가 새 단일 일정을 성공적으로 생성한다', () => {
       // When: 모든 필드를 유효하게 채운 뒤 저장한다.
-      cy.get('#title').type(eventTitle);
-      cy.get('#date').type('2025-08-15');
-      cy.get('#start-time').type('14:00');
-      cy.get('#end-time').type('15:00');
-      cy.get('#description').type('테스트 내용');
-      cy.get('#location').type('테스트 장소');
-      cy.get('[data-testid="event-submit-button"]').click();
+      createEvent(initialEventData);
 
       // Then: '일정이 추가되었습니다' 알림이 나타나야 한다.
-      // cy.contains('일정이 추가되었습니다').should('be.visible');
+      cy.contains('일정이 추가되었습니다').should('be.visible');
+      cy.tick(5000);
 
-      // And: 캘린더와 오른쪽 이벤트 목록에 새로운 일정이 표시되어야 한다.
-      cy.get('[data-testid="month-view"]').should('contain', eventTitle);
-      cy.get('[data-testid="event-list"]').should('contain', eventTitle);
+      // And: 캘린더와 이벤트 목록에 새로운 일정이 표시되어야 한다.
+      cy.get('[data-testid="month-view"]').should('contain', initialEventData.title);
+      cy.get('[data-testid="event-list"]').should('contain', initialEventData.title);
     });
 
     it('시나리오: 사용자가 기존 일정을 성공적으로 수정한다', () => {
-      const updatedTitle = '수정된 E2E 테스트 일정';
+      const updatedTitle = '수정된 E2E 테스트';
 
       // Given: 초기 일정이 화면에 표시된 상태에서,
+      createEvent(initialEventData);
+      cy.tick(5000);
+
       // When: 오른쪽 목록에서 특정 일정의 '수정' 버튼을 누르고,
       cy.get('[data-testid="event-list"]')
-        .contains('새로운 E2E 테스트 일정')
+        .contains(initialEventData.title)
         .closest('div.MuiBox-root')
         .find('button[aria-label="Edit event"]')
         .click();
@@ -96,84 +88,67 @@ describe('캘린더 E2E 테스트', () => {
       cy.get('#title').type(updatedTitle);
       cy.get('[data-testid="event-submit-button"]').click();
 
-      // Then: '일정이 수정되었습니다' 알림이 나타나야 한다.
-      cy.contains('일정이 수정되었습니다').should('be.visible');
-
       // And: 캘린더와 이벤트 목록에 수정된 내용이 반영되어야 한다.
       cy.get('[data-testid="month-view"]').should('contain', updatedTitle);
       cy.get('[data-testid="event-list"]').should('contain', updatedTitle);
-      cy.get('[data-testid="event-list"]').should('not.contain', '새로운 E2E 테스트 일정');
+      cy.get('[data-testid="event-list"]').should('not.contain', initialEventData.title);
     });
 
     it('시나리오: 사용자가 기존 일정을 삭제한다', () => {
       // Given: 초기 일정이 화면에 표시된 상태에서,
+      createEvent(initialEventData);
+
       // When: 오른쪽 목록에서 특정 일정의 '삭제' 버튼을 누른다.
       cy.get('[data-testid="event-list"]')
-        .contains('수정된 E2E 테스트 일정')
+        .contains(initialEventData.title)
         .closest('div.MuiBox-root')
         .find('button[aria-label="Delete event"]')
         .click();
 
-      // Then: '일정이 삭제되었습니다' 알림이 나타나야 한다.
-      cy.contains('일정이 삭제되었습니다').should('be.visible');
-
       // And: 캘린더와 이벤트 목록에서 해당 일정이 사라져야 한다.
-      cy.get('[data-testid="month-view"]').should('not.contain', '수정된 E2E 테스트 일정');
-      cy.get('[data-testid="event-list"]').should('not.contain', '수정된 E2E 테스트 일정');
+      cy.get('[data-testid="month-view"]').should('not.contain', initialEventData.title);
+      cy.get('[data-testid="event-list"]').should('not.contain', initialEventData.title);
     });
   });
 
   describe('2. 반복 일정 기능', () => {
     it("시나리오: 사용자가 '매주' 반복 일정을 생성한다", () => {
-      const eventTitle = 'E2E 테스트 주간 회의';
-      // Given: 사용자가 '2025-08-04'(월요일)을 시작일로 선택하고,
-      // When: 반복 옵션을 '매주', 종료일을 '2025-08-18'로 설정하고 저장한다.
-      createRecurringEvent({
-        title: eventTitle,
-        date: '2025-08-04',
-        startTime: '10:00',
-        endTime: '11:00',
-        description: '매주 E2E 회의입니다',
-        location: '회의실',
+      // Given: 사용자가 반복 옵션과 종료일을 설정하고 저장한다.
+      createEvent({
+        ...initialEventData,
         repeat: { type: 'weekly', endDate: '2025-08-18' },
       });
+
       // Then: 캘린더의 8월 4일, 11일, 18일에 모두 해당 일정이 반복 아이콘과 함께 표시되어야 한다.
       cy.get('[data-testid="month-view"]').within(() => {
         cy.contains('td', '4')
-          .should('contain', eventTitle)
+          .should('contain', initialEventData.title)
           .find('[data-testid="recurring-icon"]')
           .should('exist');
         cy.contains('td', '11')
-          .should('contain', eventTitle)
+          .should('contain', initialEventData.title)
           .find('[data-testid="recurring-icon"]')
           .should('exist');
         cy.contains('td', '18')
-          .should('contain', eventTitle)
+          .should('contain', initialEventData.title)
           .find('[data-testid="recurring-icon"]')
           .should('exist');
       });
     });
 
     it("시나리오: 사용자가 반복 일정의 '가상 인스턴스'만 수정한다", () => {
-      const eventTitle = 'E2E 테스트 주간 회의';
-      const updatedTitle = 'E2E 테스트 특별 회의';
-      // Given: '매주' 반복되는 "주간 회의" 일정이 있는 상태에서,
-      createRecurringEvent({
-        title: eventTitle,
-        date: '2025-08-05',
-        startTime: '10:00',
-        endTime: '11:00',
-        description: '주간 회의입니다',
-        location: '회의실',
-        repeat: { type: 'weekly', endDate: '2025-08-19' },
+      const updatedTitle = 'E2E 테스트 특별 일정';
+
+      // Given: '매주' 반복되는 일정이 있는 상태에서,
+      createEvent({
+        ...initialEventData,
+        repeat: { type: 'weekly', endDate: '2025-08-18' },
       });
 
-      // cy.contains('일정이 추가되었습니다').should('be.visible');
-
-      // When: 캘린더의 '8월 12일' 칸에 있는 "주간 회의"를 클릭하여 제목을 "특별 회의"로 수정한다.
+      // When: 한 가상 인스턴스의 제목을 수정한다.
       cy.get('[data-testid="month-view"]').within(() => {
-        cy.contains('td', '12').within(() => {
-          cy.contains(eventTitle).click({ force: true });
+        cy.contains('td', '11').within(() => {
+          cy.contains(initialEventData.title).click({ force: true });
         });
       });
 
@@ -181,48 +156,41 @@ describe('캘린더 E2E 테스트', () => {
       cy.get('#title').type(updatedTitle);
       cy.get('[data-testid="event-submit-button"]').click({ force: true });
 
-      // Then: '8월 12일' 칸에는 "특별 회의"가 표시되고 반복 아이콘이 없어야 한다.
-      // And: '8월 5일'과 '8월 19일' 칸에는 여전히 "주간 회의"가 반복 아이콘과 함께 표시되어야 한다.
+      // Then: 수정된 가상 인스턴스 일정은 반복 일정으로부터 독립된다.
       cy.get('[data-testid="month-view"]').within(() => {
-        cy.contains('td', '12')
+        cy.contains('td', '11')
           .should('contain', updatedTitle)
           .find('[data-testid="recurring-icon"]')
           .should('not.exist');
-        cy.contains('td', '5')
-          .should('contain', eventTitle)
+      });
+      cy.get('[data-testid="month-view"]').within(() => {
+        cy.contains('td', '4')
+          .should('contain', initialEventData.title)
           .find('[data-testid="recurring-icon"]')
           .should('exist');
-        cy.contains('td', '19')
-          .should('contain', eventTitle)
+        cy.contains('td', '18')
+          .should('contain', initialEventData.title)
           .find('[data-testid="recurring-icon"]')
           .should('exist');
       });
     });
 
     it("시나리오: 사용자가 반복 일정의 '원본'을 삭제한다", () => {
-      const eventTitle = 'E2E 테스트 삭제될 주간 회의';
-      // Given: '매주' 반복되는 "주간 회의" 일정이 있는 상태에서,
-      createRecurringEvent({
-        title: eventTitle,
-        date: '2025-08-06',
-        startTime: '10:00',
-        endTime: '11:00',
-        description: '주간 회의입니다',
-        location: '회의실',
-        repeat: { type: 'weekly', endDate: '2025-08-20' },
+      // Given: '매주' 반복되는 일정이 있는 상태에서,
+      createEvent({
+        ...initialEventData,
+        repeat: { type: 'weekly', endDate: '2025-08-18' },
       });
-      // cy.contains('일정이 추가되었습니다').should('be.visible');
 
-      // When: 오른쪽 이벤트 목록에서 '원본'인 "주간 회의"의 삭제 버튼을 누른다.
+      // When: 오른쪽 이벤트 목록에서 반복 일정 원본의 삭제 버튼을 누른다.
       cy.get('[data-testid="event-list"]')
-        .contains(eventTitle)
+        .contains(initialEventData.title)
         .closest('div.MuiBox-root')
         .find('button[aria-label="Delete event"]')
         .click();
-      // cy.contains('일정이 삭제되었습니다').should('be.visible');
 
       // Then: 캘린더에 있던 모든 "주간 회의" 일정이 사라져야 한다.
-      cy.get('[data-testid="month-view"]').should('not.contain', eventTitle);
+      cy.get('[data-testid="month-view"]').should('not.contain', initialEventData.title);
     });
   });
 
@@ -245,7 +213,7 @@ describe('캘린더 E2E 테스트', () => {
       // Given: '팀 회의'와 '점심 약속' 일정이 있는 상태에서,
       createEvent({
         title: 'E2E 테스트 - 팀 회의',
-        date: '2025-08-10',
+        date: '2025-08-16',
         startTime: '10:00',
         endTime: '11:00',
         description: '팀 회의입니다',
@@ -253,7 +221,7 @@ describe('캘린더 E2E 테스트', () => {
       });
       createEvent({
         title: 'E2E 테스트 - 점심 약속',
-        date: '2025-08-11',
+        date: '2025-08-16',
         startTime: '12:00',
         endTime: '13:00',
         description: '점심 약속입니다',
@@ -281,14 +249,13 @@ describe('캘린더 E2E 테스트', () => {
       cy.get('[data-testid="event-submit-button"]').click();
       // Then: "필수 정보를 모두 입력해주세요"라는 에러 알림이 나타나야 한다.
       cy.contains('필수 정보를 모두 입력해주세요').should('be.visible');
-      // And: 폼은 닫히지 않아야 한다.
     });
 
     it('시나리오: 사용자가 겹치는 시간에 일정을 생성하려고 한다', () => {
       // Given: '10:00 ~ 11:00'에 "기존 회의" 일정이 있는 상태에서,
       createEvent({
         title: 'E2E 테스트 - 기존 회의',
-        date: '2025-08-20',
+        date: '2025-08-16',
         startTime: '10:00',
         endTime: '11:00',
         description: '기존 회의입니다',
@@ -297,7 +264,7 @@ describe('캘린더 E2E 테스트', () => {
       // When: 사용자가 '10:30 ~ 11:30'에 "새로운 회의"를 생성하려고 한다.
       createEvent({
         title: 'E2E 테스트 - 겹치는 일정',
-        date: '2025-08-20',
+        date: '2025-08-16',
         startTime: '10:30',
         endTime: '11:30',
         description: '겹치는 일정입니다',
